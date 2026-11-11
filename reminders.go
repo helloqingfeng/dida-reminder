@@ -299,9 +299,11 @@ func (s *Reminders) TogglePause(id string) error {
 // Dismiss acknowledges the alert at the front of the queue.
 func (s *Reminders) Dismiss() {
 	s.mu.Lock()
-	if len(s.queue) > 0 {
-		s.queue = s.queue[1:]
+	if len(s.queue) == 0 {
+		s.mu.Unlock()
+		return
 	}
+	s.queue = s.queue[1:]
 	s.mu.Unlock()
 	s.commit()
 }
@@ -310,15 +312,17 @@ func (s *Reminders) Dismiss() {
 // minutes from now.
 func (s *Reminders) Snooze() {
 	s.mu.Lock()
-	if len(s.queue) > 0 {
-		a := s.queue[0]
-		s.queue = s.queue[1:]
-		if i := s.index(a.ReminderID); i >= 0 {
-			r := &s.reminders[i]
-			r.Paused = false
-			r.Expired = false
-			r.NextTrigger = time.Now().UnixMilli() + snoozeMs
-		}
+	if len(s.queue) == 0 {
+		s.mu.Unlock()
+		return
+	}
+	a := s.queue[0]
+	s.queue = s.queue[1:]
+	if i := s.index(a.ReminderID); i >= 0 {
+		r := &s.reminders[i]
+		r.Paused = false
+		r.Expired = false
+		r.NextTrigger = time.Now().UnixMilli() + snoozeMs
 	}
 	s.mu.Unlock()
 	s.commit()

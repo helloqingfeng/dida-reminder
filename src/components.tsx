@@ -22,6 +22,50 @@ export interface Draft {
   content: string;
 }
 
+// Keeps keyboard focus inside an open dialog and restores it on close.
+function useFocusTrap(ref: React.RefObject<HTMLElement | null>) {
+  React.useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const prev = document.activeElement as HTMLElement | null;
+    const selector =
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const focusables = () =>
+      Array.from(node.querySelectorAll<HTMLElement>(selector)).filter((el) => el.getClientRects().length > 0);
+    const initial = node.querySelector<HTMLElement>("[data-autofocus]") ?? focusables()[0] ?? node;
+    initial.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const items = focusables();
+      if (items.length === 0) {
+        e.preventDefault();
+        node.focus();
+        return;
+      }
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (!first || !last) {
+        e.preventDefault();
+        node.focus();
+        return;
+      }
+      const active = document.activeElement as HTMLElement | null;
+      if (e.shiftKey && (active === first || active === node)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    node.addEventListener("keydown", onKey);
+    return () => {
+      node.removeEventListener("keydown", onKey);
+      if (prev && prev.isConnected) prev.focus();
+    };
+  }, [ref]);
+}
+
 export function ReminderRow({
   r,
   now,
@@ -95,6 +139,8 @@ export function EditDialog({
   onClose: () => void;
 }) {
   const isNew = !initial;
+  const dialogRef = React.useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef);
   const [type, setType] = useState(initial ? initial.type : "interval");
   const [config, setConfig] = useState<AnyConfig>(initial ? { ...defaultConfig(initial.type), ...initial.config } : defaultConfig("interval"));
   const [content, setContent] = useState(initial ? initial.content : "");
@@ -136,7 +182,7 @@ export function EditDialog({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="dialog" role="dialog" aria-label={isNew ? "新建提醒" : "编辑提醒"}>
+      <div className="dialog" role="dialog" aria-modal="true" tabIndex={-1} ref={dialogRef} aria-label={isNew ? "新建提醒" : "编辑提醒"}>
         <div className="dialog-head">
           <h2>{isNew ? "新建提醒" : "编辑提醒"}</h2>
           <button className="dialog-close" onClick={onClose} aria-label="关闭">
@@ -147,7 +193,7 @@ export function EditDialog({
           <div className="field">
             <label>提醒类型</label>
             <div className="field-row">
-              <select value={type} onChange={(e) => changeType(e.target.value)}>
+              <select data-autofocus value={type} onChange={(e) => changeType(e.target.value)}>
                 {TYPES.map((t) => (
                   <option key={t.value} value={t.value}>
                     {t.label}
@@ -265,9 +311,11 @@ export function AlertPopup({
   onSnooze: () => void;
 }) {
   const overdue = Math.max(0, now - alert.firedAt);
+  const dialogRef = React.useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef);
   return (
     <div className="overlay overlay-alert">
-      <div className="dialog alert-dialog alert-pulse" role="alertdialog" aria-label="提醒弹窗">
+      <div className="dialog alert-dialog alert-pulse" role="alertdialog" aria-modal="true" tabIndex={-1} ref={dialogRef} aria-label="提醒弹窗">
         <div className="dialog-head">
           <h2>时间到！</h2>
           <button className="dialog-close" onClick={onDismiss} aria-label="关闭">
@@ -295,7 +343,7 @@ export function AlertPopup({
           <button className="btn" onClick={onSnooze}>
             重复提醒<span className="sub">5 分钟后再响</span>
           </button>
-          <button className="btn btn-primary" onClick={onDismiss}>
+          <button className="btn btn-primary" data-autofocus onClick={onDismiss}>
             知道了<span className="sub">关闭本次提醒</span>
           </button>
         </div>
@@ -321,6 +369,8 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const dialogRef = React.useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef);
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -339,7 +389,7 @@ export function ConfirmDialog({
         if (e.target === e.currentTarget) onCancel();
       }}
     >
-      <div className="dialog" role="alertdialog" aria-label={title}>
+      <div className="dialog" role="alertdialog" aria-modal="true" tabIndex={-1} ref={dialogRef} aria-label={title}>
         <div className="dialog-head">
           <h2>{title}</h2>
           <button className="dialog-close" onClick={onCancel} aria-label="关闭">
@@ -350,7 +400,7 @@ export function ConfirmDialog({
           <p className="confirm-message">{message}</p>
         </div>
         <div className="dialog-foot">
-          <button className="btn" onClick={onCancel}>
+          <button className="btn" data-autofocus onClick={onCancel}>
             {cancelLabel}
           </button>
           <button className={"btn" + (danger ? " btn-danger" : " btn-primary")} onClick={onConfirm}>

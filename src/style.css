@@ -20,12 +20,10 @@
   --hairline: rgba(255, 255, 255, 0.5);
   --row-hover: rgba(255, 255, 255, 0.42);
   --edge: inset 0 1px 0 rgba(255, 255, 255, 0.75), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
-  --shadow: 0 10px 34px rgba(22, 40, 60, 0.14), 0 2px 8px rgba(22, 40, 60, 0.06);
   --shadow-pop: 0 26px 70px rgba(12, 24, 36, 0.3);
   --scrim: rgba(28, 40, 52, 0.2);
   --blur: 26px;
   --sat: 180%;
-  --radius: 24px;
   --radius-sm: 12px;
   --font: -apple-system, "SF Pro Text", "Segoe UI", "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
   --mono: "SF Mono", ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace;
@@ -69,6 +67,9 @@ body::before {
   position: relative;
   z-index: 1;
 }
+body.bg-paused::before {
+  animation-play-state: paused;
+}
 button {
   font-family: inherit;
   font-size: inherit;
@@ -85,23 +86,22 @@ textarea {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 32px 20px;
+  padding: 0;
 }
 
 /* ============ App window (glass panel) ============ */
 .app-window {
   position: relative;
   width: 100%;
-  max-width: 860px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   background: var(--glass-bg);
   -webkit-backdrop-filter: blur(var(--blur)) saturate(var(--sat));
   backdrop-filter: blur(var(--blur)) saturate(var(--sat));
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius);
   overflow: hidden;
   isolation: isolate;
-  box-shadow: var(--shadow), var(--edge);
+  box-shadow: var(--edge);
 }
 .app-window::before {
   content: "";
@@ -296,6 +296,7 @@ textarea:focus-visible {
 .reminder-list {
   list-style: none;
   min-height: 180px;
+  flex: 1;
 }
 .reminder-row {
   display: grid;
@@ -371,8 +372,6 @@ textarea:focus-visible {
   background: var(--glass-inset);
   border: 1px solid var(--glass-border);
   color: var(--muted);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
   line-height: 1.7;
 }
 .badge-running,
@@ -433,6 +432,7 @@ textarea:focus-visible {
 }
 .empty-state {
   margin: 26px;
+  flex: 1;
   padding: 38px 20px;
   border: 1.5px dashed var(--glass-border);
   border-radius: 16px;

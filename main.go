@@ -47,7 +47,7 @@ func main() {
 			Height:          680,
 			MinWidth:        560,
 			MinHeight:       480,
-			BackgroundColor: "#f4f1ea", // the page's --page-bg
+			BackgroundColor: "#eef4f1", // the page's glass base tint
 			StateKey:        "main",
 			URL:             "/",
 		})
@@ -71,7 +71,7 @@ func main() {
 			SkipTaskbar:     true,
 			DisableResize:   true,
 			Hidden:          true,
-			BackgroundColor: "#ffffff",
+			BackgroundColor: "#eef4f1",
 			URL:             "/?view=alert",
 		})
 		alertWin.OnClose(func(e *mygo.CloseEvent) {
@@ -96,34 +96,41 @@ func main() {
 			}
 		}
 
+		// Shared actions reused by the window context menu and the tray menu.
+		newReminder := func() {
+			showWindow()
+			UiAction.Broadcast("new")
+		}
+		deleteAll := func() {
+			if svc.Count() == 0 {
+				return
+			}
+			res, err := mygo.Dialog.Message(mygo.MessageOptions{
+				Parent:             win,
+				Type:               mygo.MessageQuestion,
+				Title:              "滴答提醒",
+				Message:            "确定删除全部提醒？",
+				Detail:             "此操作不可撤销，将清空所有提醒和待处理弹窗。",
+				Buttons:            []string{"删除", "取消"},
+				DefaultButton:      1,
+				CancelButton:       1,
+				DestructiveButtons: []int{0},
+			})
+			if err == nil && res.Button == 0 {
+				svc.DeleteAll()
+			}
+		}
+
 		// Replace the browser's right-click menu with app actions; the stock
 		// Back/Refresh/Print items are useless in a reminder tool.
 		win.Page().OnContextMenu(func(e *mygo.ContextMenuEvent) {
 			e.Menu = mygo.NewMenu([]*mygo.MenuItem{
-				{Label: "新建提醒", Click: func(*mygo.MenuItem, *mygo.Window) { UiAction.Broadcast("new") }},
+				{Label: "新建提醒", Click: func(*mygo.MenuItem, *mygo.Window) { newReminder() }},
 				{Label: "立即测试提醒", Click: func(*mygo.MenuItem, *mygo.Window) { svc.TestAlert() }},
 				mygo.Separator(),
 				{Label: "全部暂停", Click: func(*mygo.MenuItem, *mygo.Window) { svc.PauseAll() }},
 				{Label: "全部恢复", Click: func(*mygo.MenuItem, *mygo.Window) { svc.ResumeAll() }},
-				{Label: "删除全部提醒", Click: func(*mygo.MenuItem, *mygo.Window) {
-					if svc.Count() == 0 {
-						return
-					}
-					res, err := mygo.Dialog.Message(mygo.MessageOptions{
-						Parent:             win,
-						Type:               mygo.MessageQuestion,
-						Title:              "滴答提醒",
-						Message:            "确定删除全部提醒？",
-						Detail:             "此操作不可撤销，将清空所有提醒和待处理弹窗。",
-						Buttons:            []string{"删除", "取消"},
-						DefaultButton:      1,
-						CancelButton:       1,
-						DestructiveButtons: []int{0},
-					})
-					if err == nil && res.Button == 0 {
-						svc.DeleteAll()
-					}
-				}},
+				{Label: "删除全部提醒", Click: func(*mygo.MenuItem, *mygo.Window) { deleteAll() }},
 				mygo.Separator(),
 				{Label: "开机自启", Type: mygo.MenuItemCheckbox, Checked: svc.GetAutoStart(), Click: func(it *mygo.MenuItem, _ *mygo.Window) { _ = svc.SetAutoStart(it.Checked) }},
 				{Label: "退出", Click: func(*mygo.MenuItem, *mygo.Window) { mygo.App.Quit() }},
@@ -136,7 +143,14 @@ func main() {
 
 		menu := mygo.NewMenu([]*mygo.MenuItem{
 			{Label: "显示主界面", Click: func(*mygo.MenuItem, *mygo.Window) { showWindow() }},
+			{Label: "新建提醒", Click: func(*mygo.MenuItem, *mygo.Window) { newReminder() }},
+			{Label: "立即测试提醒", Click: func(*mygo.MenuItem, *mygo.Window) { svc.TestAlert() }},
 			mygo.Separator(),
+			{Label: "全部暂停", Click: func(*mygo.MenuItem, *mygo.Window) { svc.PauseAll() }},
+			{Label: "全部恢复", Click: func(*mygo.MenuItem, *mygo.Window) { svc.ResumeAll() }},
+			{Label: "删除全部提醒", Click: func(*mygo.MenuItem, *mygo.Window) { deleteAll() }},
+			mygo.Separator(),
+			{Label: "开机自启", Type: mygo.MenuItemCheckbox, Checked: svc.GetAutoStart(), Click: func(it *mygo.MenuItem, _ *mygo.Window) { _ = svc.SetAutoStart(it.Checked) }},
 			{Label: "退出", Click: func(*mygo.MenuItem, *mygo.Window) { mygo.App.Quit() }},
 		})
 		tray, err := mygo.NewTray(mygo.TrayOptions{

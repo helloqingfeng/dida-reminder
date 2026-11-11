@@ -10,6 +10,9 @@ type Filter = "all" | "running" | "paused" | "expired";
 
 const isAlertView = new URLSearchParams(window.location.search).get("view") === "alert";
 document.body.dataset.view = isAlertView ? "alert" : "main";
+document.addEventListener("visibilitychange", () => {
+  document.body.classList.toggle("bg-paused", document.hidden);
+});
 
 function App() {
   const [reminders, setReminders] = useState<Reminder[]>([]);
@@ -25,12 +28,12 @@ function App() {
   }, []);
 
   useEffect(() => {
-    Reminders.getState().then((s) => setReminders(s.reminders ?? []));
-    Reminders.getAutoStart().then(setAutoStart);
     const off = events.state.on((s) => setReminders(s.reminders ?? []));
     const offUi = events.ui.on((action) => {
       if (action === "new") setEditing({ mode: "new" });
     });
+    Reminders.getState().then((s) => setReminders(s.reminders ?? []));
+    Reminders.getAutoStart().then(setAutoStart);
     return () => {
       off();
       offUi();
@@ -173,11 +176,6 @@ function AlertWindow() {
   }, []);
 
   useEffect(() => {
-    Reminders.getState().then((s) => {
-      const q = s.queue ?? [];
-      setQueue(q);
-      seenRef.current = new Set(q.map((a) => a.id));
-    });
     const off = events.state.on((s) => {
       const q = s.queue ?? [];
       setQueue(q);
@@ -186,6 +184,11 @@ function AlertWindow() {
         if (!seenRef.current.has(a.id)) playChime();
       }
       seenRef.current = ids;
+    });
+    Reminders.getState().then((s) => {
+      const q = s.queue ?? [];
+      setQueue(q);
+      seenRef.current = new Set(q.map((a) => a.id));
     });
     return off;
   }, []);
