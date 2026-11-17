@@ -50,6 +50,11 @@ func main() {
 			BackgroundColor: "#eef4f1", // the page's glass base tint
 			StateKey:        "main",
 			URL:             "/",
+			// Single chrome: hide the OS title bar and its buttons so the glass
+			// is one continuous surface. The page draws its own title bar and
+			// controls; Windows keeps the shadow, rounded corners and resize edges.
+			TitleBarStyle:     mygo.TitleBarHidden,
+			HideWindowButtons: true,
 		})
 		// Closing the window hides it to the tray instead of quitting.
 		win.OnClose(func(e *mygo.CloseEvent) {

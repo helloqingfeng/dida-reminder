@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { currentWindow, isMyGo } from "mygo-runtime";
 import { Reminders, events, type Alert, type Reminder } from "./mygo";
 import { fmtClock, fmtDateTime, normalizeConfig, playChime } from "./helpers";
 import { AlertPopup, ConfirmDialog, EditDialog, ReminderRow, type Draft } from "./components";
@@ -21,10 +22,21 @@ function App() {
   const [pendingDelete, setPendingDelete] = useState<Reminder | null>(null);
   const [autoStart, setAutoStart] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const [maximized, setMaximized] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(t);
+  }, []);
+
+  // The window has no OS title bar; keep the maximize/restore icon in sync with
+  // the native state, including maximize triggered by double-clicking the bar.
+  useEffect(() => {
+    if (!isMyGo()) return;
+    const sync = () => currentWindow.isMaximized().then(setMaximized).catch(() => {});
+    sync();
+    window.addEventListener("resize", sync);
+    return () => window.removeEventListener("resize", sync);
   }, []);
 
   useEffect(() => {
@@ -83,17 +95,52 @@ function App() {
               <p>计时提醒小工具</p>
             </div>
           </div>
-          <div className="header-actions">
-            <button className={"btn btn-toggle" + (autoStart ? " active" : "")} onClick={toggleAutoStart} title="开机时自动启动">
-              <span className="toggle-dot" aria-hidden="true"></span>
-              开机自启
-            </button>
-            <button className="btn btn-primary" onClick={() => setEditing({ mode: "new" })}>
-              ＋ 新建提醒
-            </button>
-            <button className="btn btn-danger" onClick={() => void Reminders.quit()} title="完全退出程序">
-              退出
-            </button>
+          <div className="header-right">
+            <div className="header-actions">
+              <button className={"btn btn-toggle" + (autoStart ? " active" : "")} onClick={toggleAutoStart} title="开机时自动启动">
+                <span className="toggle-dot" aria-hidden="true"></span>
+                开机自启
+              </button>
+              <button className="btn btn-primary" onClick={() => setEditing({ mode: "new" })}>
+                ＋ 新建提醒
+              </button>
+              <button className="btn btn-danger" onClick={() => void Reminders.quit()} title="完全退出程序">
+                退出
+              </button>
+            </div>
+            <div className="win-controls">
+              <button onClick={() => void currentWindow.minimize()} title="最小化" aria-label="最小化">
+                <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+                  <path d="M2 6h8" stroke="currentColor" strokeWidth="1.2" fill="none" />
+                </svg>
+              </button>
+              <button
+                onClick={() => {
+                  currentWindow
+                    .toggleMaximize()
+                    .then(() => currentWindow.isMaximized().then(setMaximized))
+                    .catch(() => {});
+                }}
+                title={maximized ? "还原" : "最大化"}
+                aria-label={maximized ? "还原" : "最大化"}
+              >
+                {maximized ? (
+                  <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+                    <path d="M3.5 4.5V2.5h6v6h-2" stroke="currentColor" strokeWidth="1.1" fill="none" />
+                    <rect x="2.5" y="4.5" width="5" height="5" stroke="currentColor" strokeWidth="1.1" fill="none" />
+                  </svg>
+                ) : (
+                  <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+                    <rect x="2.5" y="2.5" width="7" height="7" stroke="currentColor" strokeWidth="1.1" fill="none" />
+                  </svg>
+                )}
+              </button>
+              <button className="wc-close" onClick={() => void currentWindow.close()} title="关闭到托盘" aria-label="关闭">
+                <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+                  <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.2" fill="none" />
+                </svg>
+              </button>
+            </div>
           </div>
         </header>
         <div className="toolbar">

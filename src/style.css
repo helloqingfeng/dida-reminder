@@ -119,7 +119,17 @@ textarea {
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  padding: 22px 26px 18px;
+  padding: 20px 22px 18px;
+  /* The OS title bar is hidden; this row drags the window instead. */
+  --app-region: drag;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.app-header button,
+.app-header select,
+.app-header input,
+.app-header label {
+  --app-region: no-drag;
 }
 .brand {
   display: flex;
@@ -173,6 +183,43 @@ textarea {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+/* Window controls drawn inside the glass, replacing the hidden OS buttons. */
+.win-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  --app-region: no-drag;
+}
+.win-controls button {
+  width: 34px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  transition: background 0.15s, color 0.15s;
+}
+.win-controls button:hover {
+  background: var(--glass-btn-hover);
+  color: var(--text);
+}
+.win-controls .wc-close:hover {
+  background: var(--danger);
+  color: #fff;
+}
+.win-controls button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 /* ============ Buttons (glass pills) ============ */
